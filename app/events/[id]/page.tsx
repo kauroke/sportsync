@@ -1,34 +1,81 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, Users, MessageSquare, Share2, Edit } from "lucide-react"
+import { Calendar, Clock, MapPin, MessageSquare, Share2, Edit, Check } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { DeleteEventDialog } from "@/components/delete-event-dialog"
-import { useEffect, useState } from "react"
-import { getEvent, approveJoinRequest, denyJoinRequest } from "@/lib/events"
-import type { Event as EventType } from "@/lib/events"
+import { getEvent, type Event } from "@/lib/events"
+import { useAuth } from "@/contexts/auth-context"
+import { JoinEventDialog } from "@/components/join-event-dialog"
 
 export default function EventDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch the event data based on the ID
-  const eventId = params.id
+  const eventId = Number.parseInt(params.id)
+  const { user } = useAuth()
+  const router = useRouter()
+  const [event, setEvent] = useState<Event | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Determine if the current user is the creator of this event
-  // In a real app, this would be based on authentication
-  const isCreator = true // For demo purposes, assume the user is the creator
-
-  const [event, setEvent] = useState<EventType | undefined>(undefined)
-
+  // Fetch event data
   useEffect(() => {
-    async function fetchEvent() {
-      const fetchedEvent = await getEvent(Number(eventId))
-      setEvent(fetchedEvent as EventType)
+    async function loadEvent() {
+      try {
+        setIsLoading(true)
+        const eventData = await getEvent(eventId)
+
+        if (!eventData) {
+          setError("Event not found")
+          return
+        }
+
+        setEvent(eventData)
+      } catch (err) {
+        console.error("Error loading event:", err)
+        setError("Failed to load event data")
+      } finally {
+        setIsLoading(false)
+      }
     }
-    fetchEvent()
+
+    loadEvent()
   }, [eventId])
 
-  if (!event) {
-    return <div>Loading...</div>
+  // Determine if the current user is the creator of this event
+  const isCreator = user && event?.createdBy === user.id
+
+  // Add this function to check if the user has already joined the event
+  const hasUserJoined = user && event && event.participants ? event.participants.includes(user.id) : false
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#a3e635] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading event details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !event) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-sm">
+            <h1 className="text-xl font-bold text-red-500 mb-2">Error</h1>
+            <p className="text-gray-700 mb-4">{error || "Event not found"}</p>
+            <Link href="/events">
+              <Button variant="outline">Back to Events</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -43,9 +90,11 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
             <div className="bg-[#a3e635]/20 p-8">
               <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div>
-                  <Badge className="bg-[#a3e635] text-black mb-2">Practice Match</Badge>
-                  <h1 className="text-3xl font-bold mb-2">Intermediate Singles Practice</h1>
-                  <p className="text-gray-600">Hosted by Kenneth Uro</p>
+                  <Badge className="bg-[#a3e635] text-black mb-2">
+                    {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                  </Badge>
+                  <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
+                  <p className="text-gray-600">Hosted by {isCreator ? "You" : "Kenneth Yu"}</p>
                 </div>
                 <div className="flex items-start gap-2">
                   {isCreator && (
@@ -55,12 +104,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                           <Edit className="h-4 w-4" />
                         </Button>
                       </Link>
-                      <DeleteEventDialog
-                        eventId={Number.parseInt(eventId)}
-                        eventTitle="Intermediate Singles Practice"
-                        variant="icon"
-                        size="icon"
-                      />
+                      <DeleteEventDialog eventId={eventId} eventTitle={event.title} variant="icon" size="icon" />
                     </>
                   )}
                   <Button variant="outline" size="icon">
@@ -77,7 +121,14 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                     <Calendar className="h-8 w-8 text-[#65a30d]" />
                     <div>
                       <p className="text-sm text-gray-500">Date</p>
-                      <p className="font-medium">Saturday, June 15, 2024</p>
+                      <p className="font-medium">
+                        {event.date.toLocaleDateString("en-US", {
+                          weekday: "long",
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -87,7 +138,9 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                     <Clock className="h-8 w-8 text-[#65a30d]" />
                     <div>
                       <p className="text-sm text-gray-500">Time</p>
-                      <p className="font-medium">9:00 AM - 11:00 AM</p>
+                      <p className="font-medium">
+                        {event.startTime} - {event.endTime}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -97,7 +150,7 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                     <MapPin className="h-8 w-8 text-[#65a30d]" />
                     <div>
                       <p className="text-sm text-gray-500">Location</p>
-                      <p className="font-medium">Sydney Olympic Park Tennis Centre</p>
+                      <p className="font-medium">{event.location}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -105,48 +158,77 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
 
               <div className="mb-8">
                 <h2 className="text-xl font-semibold mb-4">About this event</h2>
-                <p className="text-gray-700 mb-4">
-                  Looking for an intermediate player for a practice match. We'll play best of 3 sets with a 10-point
-                  tiebreaker for the third set if needed. I'm a 3.5 NTRP player looking to improve my game and get some
-                  good rallies going.
-                </p>
-                <p className="text-gray-700">
-                  Please bring your own water and tennis balls. The courts have good lighting and are well-maintained.
-                  There's parking available nearby.
-                </p>
+                <p className="text-gray-700 mb-4">{event.description || "No description provided."}</p>
+
+                {event.equipment && (
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">Equipment Provided:</h3>
+                    <ul className="list-disc list-inside text-gray-700 ml-2">
+                      {event.equipment.balls && <li>Tennis Balls</li>}
+                      {event.equipment.rackets && <li>Extra Rackets</li>}
+                      {event.equipment.water && <li>Water</li>}
+                    </ul>
+                  </div>
+                )}
+
+                {event.cost > 0 && <p className="mt-4 font-medium">Cost: ${event.cost.toFixed(2)} per player</p>}
               </div>
 
               <div className="mb-8">
                 <h2 className="text-xl font-semibold mb-4">Players</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Host */}
                   <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Alex" />
-                      <AvatarFallback>AT</AvatarFallback>
+                      <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Host" />
+                      <AvatarFallback>HO</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">Alex Thompson</p>
-                      <p className="text-sm text-gray-500">Host • Intermediate</p>
+                      <p className="font-medium">{isCreator ? "You" : "Kenneth Yu"}</p>
+                      <p className="text-sm text-gray-500">
+                        Host • {event.skillLevel.charAt(0).toUpperCase() + event.skillLevel.slice(1)}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Sarah" />
-                      <AvatarFallback>SL</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">Sarah Lee</p>
-                      <p className="text-sm text-gray-500">Joined • Intermediate</p>
-                    </div>
-                  </div>
+                  {/* Other participants */}
+                  {event.participants && event.participants.length > 1
+                    ? event.participants.slice(1).map((participantId, index) => (
+                        <div
+                          key={participantId}
+                          className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg"
+                        >
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src="/placeholder.svg?height=40&width=40" alt={`Participant ${index}`} />
+                            <AvatarFallback>{participantId === user?.id ? "ME" : "P" + (index + 1)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{participantId === user?.id ? "You" : `Player ${index + 1}`}</p>
+                            <p className="text-sm text-gray-500">
+                              Joined • {event.skillLevel.charAt(0).toUpperCase() + event.skillLevel.slice(1)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    : null}
 
-                  <div className="flex items-center justify-center gap-4 p-4 border border-dashed border-gray-200 rounded-lg bg-gray-50">
-                    <div className="text-center">
-                      <p className="font-medium text-gray-500">Open Spot</p>
-                      <p className="text-sm text-gray-400">1 spot remaining</p>
-                    </div>
-                  </div>
+                  {/* Open spots */}
+                  {Array.from({ length: Math.max(0, event.playersNeeded - (event.participants?.length || 1)) }).map(
+                    (_, index) => (
+                      <div
+                        key={`open-${index}`}
+                        className="flex items-center justify-center gap-4 p-4 border border-dashed border-gray-200 rounded-lg bg-gray-50"
+                      >
+                        <div className="text-center">
+                          <p className="font-medium text-gray-500">Open Spot</p>
+                          <p className="text-sm text-gray-400">
+                            {event.playersNeeded - (event.participants?.length || 1)} spot
+                            {event.playersNeeded - (event.participants?.length || 1) !== 1 ? "s" : ""} remaining
+                          </p>
+                        </div>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
 
@@ -206,55 +288,16 @@ export default function EventDetailPage({ params }: { params: { id: string } }) 
                         <Edit className="h-5 w-5 mr-2" /> Edit Event
                       </Button>
                     </Link>
-                    <DeleteEventDialog
-                      eventId={Number.parseInt(eventId)}
-                      eventTitle="Intermediate Singles Practice"
-                      size="lg"
-                    />
+                    <DeleteEventDialog eventId={eventId} eventTitle={event.title} size="lg" />
                   </div>
-                ) : (
-                  <Button size="lg" className="bg-[#a3e635] text-black hover:bg-[#84cc16]">
-                    <Users className="h-5 w-5 mr-2" /> Join This Event
+                ) : hasUserJoined ? (
+                  <Button size="lg" variant="outline" disabled>
+                    <Check className="h-5 w-5 mr-2" /> You've Joined
                   </Button>
+                ) : (
+                  <JoinEventDialog eventId={eventId} eventTitle={event.title} />
                 )}
               </div>
-
-              {isCreator && (
-                <div className="mb-8">
-                  <h2 className="text-xl font-semibold mb-4">Join Requests</h2>
-                  <div className="space-y-4">
-                    {event.joinRequests.map((request: { userId: string; status: string }) => (
-                      <div key={request.userId} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarFallback>{request.userId.slice(0, 2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{request.userId}</p>
-                            <p className="text-sm text-gray-500">Status: {request.status}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => approveJoinRequest(Number(eventId), request.userId)}
-                            disabled={request.status === "approved"}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => denyJoinRequest(Number(eventId), request.userId)}
-                            disabled={request.status === "denied"}
-                          >
-                            Deny
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

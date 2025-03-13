@@ -25,10 +25,7 @@ export const eventSchema = z.object({
   isPrivate: z.boolean().default(false),
   cost: z.number().min(0).default(0),
   createdBy: z.string().optional(),
-  joinRequests: z.array(z.object({
-    userId: z.string(),
-    status: z.enum(["pending", "approved", "denied"])
-  })).default([]),
+  participants: z.array(z.string()).optional(),
 })
 
 export type Event = z.infer<typeof eventSchema>
@@ -55,7 +52,7 @@ const sampleEvents: Event[] = [
     isPrivate: false,
     cost: 0,
     createdBy: "user123",
-    joinRequests: [],
+    participants: ["user123"],
   },
   {
     id: 2,
@@ -77,7 +74,7 @@ const sampleEvents: Event[] = [
     isPrivate: false,
     cost: 0,
     createdBy: "user456",
-    joinRequests: [],
+    participants: ["user456"],
   },
   {
     id: 3,
@@ -99,7 +96,7 @@ const sampleEvents: Event[] = [
     isPrivate: false,
     cost: 10,
     createdBy: "user789",
-    joinRequests: [],
+    participants: ["user789"],
   },
 ]
 
@@ -121,7 +118,7 @@ export async function createEvent(event: Omit<Event, "id">): Promise<Event> {
   const newEvent: Event = {
     ...event,
     id: newId,
-    joinRequests: [],
+    participants: event.participants || [event.createdBy || "guest"],
   }
 
   // Add to our sample events array
@@ -170,38 +167,34 @@ export async function deleteEvent(id: number): Promise<boolean> {
   return true
 }
 
-export async function requestToJoinEvent(eventId: number, userId: string): Promise<Event | undefined> {
-  const event = sampleEvents.find(e => e.id === eventId);
-  if (!event) return undefined;
+export async function joinEvent(eventId: number, userId: string): Promise<Event | undefined> {
+  // In a real app, this would send a POST request to an API
+  const index = sampleEvents.findIndex((e) => e.id === eventId)
 
-  // Check if the user has already requested to join
-  const existingRequest = event.joinRequests.find(req => req.userId === userId);
-  if (existingRequest) return event;
-
-  // Add a new join request
-  event.joinRequests.push({ userId, status: "pending" });
-  return event;
-}
-
-export async function approveJoinRequest(eventId: number, userId: string): Promise<Event | undefined> {
-  const event = sampleEvents.find(e => e.id === eventId);
-  if (!event) return undefined;
-
-  const request = event.joinRequests.find(req => req.userId === userId);
-  if (request) {
-    request.status = "approved";
+  if (index === -1) {
+    return undefined
   }
-  return event;
-}
 
-export async function denyJoinRequest(eventId: number, userId: string): Promise<Event | undefined> {
-  const event = sampleEvents.find(e => e.id === eventId);
-  if (!event) return undefined;
+  // Get the current event
+  const event = sampleEvents[index]
 
-  const request = event.joinRequests.find(req => req.userId === userId);
-  if (request) {
-    request.status = "denied";
+  // Check if user is already a participant
+  if (event.participants?.includes(userId)) {
+    return event
   }
-  return event;
+
+  // Add user to participants
+  const updatedParticipants = [...(event.participants || []), userId]
+
+  // Update the event
+  sampleEvents[index] = {
+    ...event,
+    participants: updatedParticipants,
+  }
+
+  // Simulate API delay
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+
+  return sampleEvents[index]
 }
 

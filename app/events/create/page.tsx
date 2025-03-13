@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import type * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { CalendarIcon, Clock, Info, Check } from "lucide-react"
+import { CalendarIcon, Clock, Info, Check, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -21,6 +21,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { createEvent, eventSchema } from "@/lib/events"
+import { useAuth } from "@/contexts/auth-context"
 
 // Import location picker map component dynamically to avoid SSR issues
 const GoogleLocationPicker = dynamic(() => import("@/components/google-location-picker"), {
@@ -43,6 +44,16 @@ export default function CreateEventPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { user, isLoading } = useAuth()
+
+  // Check if user is logged in
+  useEffect(() => {
+    if (!isLoading && !user) {
+      // Store that user was trying to create an event
+      localStorage.setItem("redirectAfterLogin", "/events/create")
+      router.push("/login")
+    }
+  }, [user, isLoading, router])
 
   // Default form values
   const defaultValues: Partial<EventFormValues> = {
@@ -87,7 +98,7 @@ export default function CreateEventPage() {
       // Create a new event
       const newEvent = await createEvent({
         ...data,
-        createdBy: "currentUser", // In a real app, this would be the current user's ID
+        createdBy: user?.id || "guest", // Use the logged-in user's ID
       })
 
       setIsSuccess(true)
@@ -120,6 +131,23 @@ export default function CreateEventPage() {
   // Previous step handler
   const handlePrevStep = () => {
     if (step > 1) setStep(step - 1)
+  }
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#a3e635] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If not logged in, don't render the form (will redirect in useEffect)
+  if (!user) {
+    return null
   }
 
   if (isSuccess) {
@@ -509,7 +537,7 @@ export default function CreateEventPage() {
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     <span>Processing...</span>
                   </div>
                 ) : step < 3 ? (

@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Calendar, Users, MapPin, Clock, Map } from "lucide-react"
+import { CreateEventButton } from "@/components/create-event-button"
 
 export default function Home() {
   return (
@@ -17,12 +18,12 @@ export default function Home() {
                 Create or join casual tennis matches, hitting sessions, and practice games with players in your area.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button size="lg" className="bg-[#a3e635] text-black hover:bg-[#84cc16]">
-                  Create Event
-                </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                  Browse Events
-                </Button>
+                <CreateEventButton size="lg">Create Event</CreateEventButton>
+                <Link href="/events">
+                  <Button size="lg" className="bg-white text-[#1e293b] hover:bg-gray-100">
+                    Find Events
+                  </Button>
+                </Link>
               </div>
             </div>
             <div className="flex-1 flex justify-center">
@@ -80,17 +81,9 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold">Upcoming Events</h2>
-            <div className="flex gap-2">
-              <Link href="/events">
-                <Button variant="outline">List View</Button>
-              </Link>
-              <Link href="/map">
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Map className="h-4 w-4" />
-                  <span>Map View</span>
-                </Button>
-              </Link>
-            </div>
+            <Link href="/events">
+              <Button variant="outline">View All Events</Button>
+            </Link>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
@@ -142,11 +135,9 @@ export default function Home() {
             Join our community of tennis enthusiasts and never play alone again.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button size="lg" className="bg-[#a3e635] text-black hover:bg-[#84cc16]">
-              Sign Up Now
-            </Button>
-            <Link href="/map">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+            <CreateEventButton size="lg">Sign Up Now</CreateEventButton>
+            <Link href="/events?view=map">
+              <Button size="lg" className="bg-white text-[#1e293b] hover:bg-gray-100">
                 Explore Map
               </Button>
             </Link>
@@ -180,7 +171,7 @@ export default function Home() {
                   </li>
                   <li>
                     <Link href="/events" className="hover:text-white">
-                      Browse Events
+                      Find Events
                     </Link>
                   </li>
                   <li>

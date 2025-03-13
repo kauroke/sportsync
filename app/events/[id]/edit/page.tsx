@@ -7,7 +7,7 @@ import type * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { CalendarIcon, Clock, Info, Check, Loader2 } from "lucide-react"
+import { CalendarIcon, Clock, Info, Check, Loader2, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -22,6 +22,7 @@ import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { getEvent, updateEvent, eventSchema } from "@/lib/events"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
 
 // Import location picker map component dynamically to avoid SSR issues
 const GoogleLocationPicker = dynamic(() => import("@/components/google-location-picker"), {
@@ -41,12 +42,14 @@ type EventFormValues = z.infer<typeof eventFormSchema>
 export default function EditEventPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const eventId = Number.parseInt(params.id)
+  const { user } = useAuth()
 
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [unauthorized, setUnauthorized] = useState(false)
 
   // Initialize form with empty values
   const form = useForm<EventFormValues>({
@@ -79,10 +82,23 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     async function loadEvent() {
       try {
         setIsLoading(true)
+
+        // If user is not logged in, redirect to login
+        if (!user) {
+          router.push("/login")
+          return
+        }
+
         const event = await getEvent(eventId)
 
         if (!event) {
           setError("Event not found")
+          return
+        }
+
+        // Check if the current user is the creator of this event
+        if (event.createdBy && event.createdBy !== user.id) {
+          setUnauthorized(true)
           return
         }
 
@@ -111,7 +127,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     }
 
     loadEvent()
-  }, [eventId, reset])
+  }, [eventId, reset, user, router])
 
   // Handle location selection from map
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
@@ -165,6 +181,29 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#a3e635] mx-auto" />
           <p className="mt-4 text-gray-600">Loading event data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (unauthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-md mx-auto">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle>Unauthorized</AlertTitle>
+              <AlertDescription>
+                You don't have permission to edit this event. Only the event creator can make changes.
+              </AlertDescription>
+            </Alert>
+            <div className="mt-4 text-center">
+              <Link href={`/events/${eventId}`}>
+                <Button variant="outline">Back to Event Details</Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     )
