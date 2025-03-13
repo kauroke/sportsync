@@ -22,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   // Get Google Maps API key from environment variable
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyCpXFSrurpD0j2Rv8yjuVQzsUIWEZlpbDs"
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
   return (
     <html lang="en">
