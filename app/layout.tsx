@@ -21,8 +21,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   // Get Google Maps API key from environment variable
-  const googleMapsApiKey = "AIzaSyCJ9TEtq5CctdZ1rbTw6V-cSWMOIgzjBrI"
-
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ 
+   if (!googleMapsApiKey) {
+     throw new Error('Google Maps API key is not defined in environment variables')
+   }
   return (
     <html lang="en">
       <body className={inter.className}>
