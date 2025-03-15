@@ -7,6 +7,19 @@ import { useAuth } from "@/contexts/auth-context"
 import { UserNav } from "@/components/user-nav"
 import { useState } from "react"
 
+// Import the Logo component
+import { Logo } from "@/components/logo"
+
+// Add a custom style for the logo
+const logoStyles = {
+  ".clip-path-triangle": {
+    clipPath: "polygon(0 100%, 100% 100%, 100% 0)",
+  },
+  ".clip-path-triangle-2": {
+    clipPath: "polygon(0 0, 100% 0, 0 100%)",
+  },
+}
+
 export function NavBar() {
   const { user, isLoading } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -17,26 +30,31 @@ export function NavBar() {
 
   return (
     <nav className="border-b bg-white">
+      <style jsx global>{`
+        .clip-path-triangle {
+          clip-path: polygon(0 100%, 100% 100%, 100% 0);
+        }
+        .clip-path-triangle-2 {
+          clip-path: polygon(0 0, 100% 0, 0 100%);
+        }
+      `}</style>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#a3e635] flex items-center justify-center text-black text-lg font-bold">
-              T
-            </div>
-            <Link href="/" className="text-xl font-bold">
-              TennisMatch
+            <Link href="/">
+              <Logo />
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <Link href="/events" className="text-sm font-medium hover:text-[#65a30d]">
+            <Link href="/events" className="text-sm font-medium hover:text-[#4CAF50]">
               Find Events
             </Link>
-            <Link href="/events/create" className="text-sm font-medium hover:text-[#65a30d]">
+            <Link href="/events/create" className="text-sm font-medium hover:text-[#4CAF50]">
               Create Event
             </Link>
-            <Link href="/players" className="text-sm font-medium hover:text-[#65a30d]">
+            <Link href="/players" className="text-sm font-medium hover:text-[#4CAF50]">
               Find Players
             </Link>
           </div>
@@ -52,7 +70,7 @@ export function NavBar() {
                     <Button variant="outline">Log in</Button>
                   </Link>
                   <Link href="/signup">
-                    <Button className="bg-[#a3e635] text-black hover:bg-[#84cc16]">Sign up</Button>
+                    <Button className="bg-[#4CAF50] text-white hover:bg-[#43A047]">Sign up</Button>
                   </Link>
                 </>
               ))}
@@ -73,21 +91,21 @@ export function NavBar() {
           <div className="container mx-auto px-4 py-3 space-y-1">
             <Link
               href="/events"
-              className="block py-2 text-base font-medium hover:text-[#65a30d]"
+              className="block py-2 text-base font-medium hover:text-[#4CAF50]"
               onClick={() => setMobileMenuOpen(false)}
             >
               Find Events
             </Link>
             <Link
               href="/events/create"
-              className="block py-2 text-base font-medium hover:text-[#65a30d]"
+              className="block py-2 text-base font-medium hover:text-[#4CAF50]"
               onClick={() => setMobileMenuOpen(false)}
             >
               Create Event
             </Link>
             <Link
               href="/players"
-              className="block py-2 text-base font-medium hover:text-[#65a30d]"
+              className="block py-2 text-base font-medium hover:text-[#4CAF50]"
               onClick={() => setMobileMenuOpen(false)}
             >
               Find Players

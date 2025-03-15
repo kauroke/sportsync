@@ -10,7 +10,7 @@ import { NavBar } from "@/components/nav-bar"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TennisMatch - Find Tennis Partners",
+  title: "Court - Find Tennis Partners",
   description: "Connect with tennis players in your area for casual matches, practice sessions, and more.",
     generator: 'v0.dev'
 }
@@ -21,11 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   // Get Google Maps API key from environment variable
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-
-  if (!googleMapsApiKey) {
-    throw new Error('Google Maps API key is not defined in environment variables')
-  }
+  const googleMapsApiKey = "AIzaSyCJ9TEtq5CctdZ1rbTw6V-cSWMOIgzjBrI"
 
   return (
     <html lang="en">
